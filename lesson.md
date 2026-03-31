@@ -1,605 +1,240 @@
-# Section 1: The Art of Asking (Selection, Filtering & Sorting)
+# 🎓 Lesson 1.4: SQL Basic — DML — Instructor Guide
 
-### Learning Objectives
+## Session Overview
 
-Learners will be able to retrieve specific columns, apply mathematical operators, filter datasets, and organize their results using sorting.
+| Item | Detail |
+|------|--------|
+| **Duration** | 3 hours |
+| **Format** | Flipped Classroom + Hands-On SQL in DbGate |
+| **Prerequisites** | SQL DDL (Lesson 1.3); able to create tables; `unit-1-4.db` downloaded |
+| **Tools** | DuckDB + DbGate |
+| **Dataset** | Singapore HDB Resale Flat Prices 2017 (`unit-1-4.db`) — table: `resale_flat_prices_2017` |
 
-### Theory Recap – The "Conversation" with Data
+### Agenda
 
-**Narrative:** "Imagine you're looking for a specific house. First, you choose what details to look at `SELECT`. Then, you narrow it down to your favorite neighborhood `WHERE`. But finally, you want to see the cheapest ones first. That is where `ORDER BY` comes in. It doesn't change your data; it just organizes the *view* so the most important information sits right at the top."
+| Time | Section | Focus |
+|------|---------|-------|
+| 0:00 – 0:55 | Part 1: Selection, Filtering & Sorting | SELECT, WHERE, ORDER BY |
+| 0:55 – 1:00 | Break | — |
+| 1:00 – 1:55 | Part 2: Aggregates & Grouping | COUNT, SUM, AVG; GROUP BY; WHERE vs. HAVING |
+| 1:55 – 2:00 | Break | — |
+| 2:00 – 2:55 | Part 3: Advanced Logic & Cleaning | CASE statements; CAST; date extraction |
+| 2:55 – 3:00 | Wrap-Up | Key Takeaways & Post-Class Assignment Briefing |
 
-***
+> **Before class:** Have students run `SELECT * FROM resale_flat_prices_2017 LIMIT 10;` to confirm the database is connected.
 
-### Workshop
+---
 
-#### Task 1: Basic Retrieval & Sorting
+## 🏃 Part 1: Selection, Filtering & Sorting (55 min)
 
-Open DbGate and create a new connection to the DuckDB database file `db/unit-1-4.db`.
+### 🎯 Learning Objective
+Retrieve specific rows and columns from a database using `SELECT`, `WHERE`, and `ORDER BY` with logical and comparison operators.
 
-> The table we will be using is `main.resale_flat_prices_2017`. It contains HDB's resale flat prices based on registration date from Jan-2017 onwards.  
->  
-> The description for each column (a.k.a data dictionary) is as follows:  
-> 
-> | Title | Column Name | Data Type | Unit of Measure | Description |  
-> | --- | --- | --- | --- | --- |  
-> | Month | month | Datetime (Month) "YYY-MM" | - | - |  
-> | Town | town | Text (General) | - | - |  
-> | Flat type | flat_type | Text (General) | - | - |  
-> | Block | block | Text (General) | - | - |  
-> | Street name | street_name | Text (General) | - | - |  
-> | Storey range | storey_range | Text (General) | - | - |  
-> | Floor area sqm | floor_area_sqm | Numeric (General) | sqm | - |  
-> | Flat model | flat_model | Text (General) | - | - |  
-> | Lease commence date | lease_commence_date | Datetime (Year) "YYY" | - | - |  
-> | Remaining lease | remaining_lease | Text (General) | - | - |  
-> | Resale price | resale_price | Numeric (General) | $ | - | 
->  
-> Compare them with the data types in DuckDB's table. 
+### 📖 Theory Recap (10 min)
 
-**Examples:**
+**Analogy:** Querying a database is like having a conversation with your data.
+- `SELECT` says: *"Give me these columns."*
+- `FROM` says: *"...from this table."*
+- `WHERE` says: *"...but only rows matching this condition."*
+- `ORDER BY` says: *"...sorted this way."*
 
-See all columns:
+Think of it as narrowing a spotlight — `WHERE` shrinks the pool of rows *before* `ORDER BY` arranges them.
 
+**Operator cheat sheet:**
+- `=` `!=` `>` `<` `>=` `<=` — standard comparison
+- `BETWEEN a AND b` — inclusive range
+- `IN ('a', 'b', 'c')` — match any in a list
+- `LIKE 'ANG%'` — pattern match (% is wildcard)
+- `AND` `OR` `NOT` — combine conditions
+
+### 🛠️ Hands-On Activity: "The Real Estate Explorer" (35 min)
+
+1. Basic retrieval:
 ```sql
-SELECT
-  *
-FROM
-  resale_flat_prices_2017;
+SELECT town, flat_type, resale_price FROM resale_flat_prices_2017 LIMIT 20;
 ```
 
-Select specific columns and sort by price (ascending is default):
-
+2. Filter with WHERE:
 ```sql
-SELECT
-  town, flat_type, resale_price
-FROM
-  resale_flat_prices_2017
-ORDER BY
-  resale_price;
+SELECT * FROM resale_flat_prices_2017
+WHERE town = 'ANG MO KIO' AND resale_price > 500000;
 ```
 
-Sort by price from highest to lowest:
-
+3. Sort results:
 ```sql
-SELECT
-  *
-FROM
-  resale_flat_prices_2017
-ORDER BY
-  resale_price DESC;
+SELECT town, flat_type, resale_price
+FROM resale_flat_prices_2017
+WHERE flat_type = '4 ROOM'
+ORDER BY resale_price DESC
+LIMIT 10;
 ```
 
-Sort by town alphabetically, then by price (highest first):
-
+4. Calculate a new column:
 ```sql
-SELECT
-  town, street_name, resale_price
-FROM
-  resale_flat_prices_2017
-ORDER BY
-  town ASC,
-  resale_price DESC;
+SELECT town, floor_area_sqm, resale_price,
+       ROUND(resale_price / floor_area_sqm, 2) AS price_per_sqm
+FROM resale_flat_prices_2017
+ORDER BY price_per_sqm DESC
+LIMIT 10;
 ```
 
-**Exercise**
+**Discussion Questions:**
+- "What towns appear most often in the top 10 most expensive per sqm?"
+- "What's the difference between `WHERE resale_price BETWEEN 400000 AND 500000` and `WHERE resale_price >= 400000 AND resale_price <= 500000`?"
 
-- Select any 3 columns from the table.  
-- Select flats from highest to lowest resale price in Punggol. 
+### 💬 Q&A & Reflection (10 min)
 
-> **What’s Your Query?**  
-> -  **QUESTION** “If our table had 100 columns and a million rows, what would happen to our computer's memory if we always used `SELECT *`?”
+- **Common Misconception:** "I can use `WHERE` with column aliases I just defined in `SELECT`." → No — `WHERE` is evaluated *before* `SELECT`. Use the full expression or a subquery.
+- **Business Case:** PropertyGuru and 99.co run exactly these types of queries to power their real-time property search filters — every filter a user clicks generates a dynamically-built `WHERE` clause.
 
-***
+---
 
-#### Task 2: Transformations & Filtering
+## 🏃 Part 2: Aggregates & Grouping (55 min)
 
-##### Operators
+### 🎯 Learning Objective
+Summarise datasets using aggregate functions with `GROUP BY`, and correctly apply `WHERE` (pre-grouping) vs. `HAVING` (post-grouping) filters.
 
-Mathematical Operators are used to perform mathematical operations on data.
+### 📖 Theory Recap (10 min)
 
-| Operator | Description |
-| --- | --- |
-| `+` | Addition |
-| `-` | Subtraction |
-| `*` | Multiplication |
-| `/` | Division |
-| `%` | Modulo | 
+**Analogy:** Imagine counting votes in an election.
+- You first *collect* all votes (the raw rows).
+- Then you *sort* them by party (GROUP BY).
+- Then you *count* each pile (aggregate function).
+- `WHERE` removes individual votes *before* sorting. `HAVING` filters parties *after* counting.
 
-Example – calculate price in thousands and rename for clarity:
+| Function | Returns |
+|----------|---------|
+| `COUNT(*)` | Number of rows |
+| `SUM(col)` | Total of a numeric column |
+| `AVG(col)` | Mean value |
+| `MIN(col)` | Smallest value |
+| `MAX(col)` | Largest value |
 
+**The key rule:** Any column in `SELECT` that isn't inside an aggregate function *must* appear in `GROUP BY`.
+
+### 🛠️ Hands-On Activity: "The Market Report" (35 min)
+
+1. Count transactions per town:
 ```sql
-SELECT
-  street_name,
-  resale_price / 1000 AS price_k  -- Use AS to rename the column
-FROM
-  resale_flat_prices_2017
-WHERE
-  town = 'PUNGGOL'
-  AND resale_price > 500000
-ORDER BY
-  resale_price DESC;
+SELECT town, COUNT(*) AS num_transactions
+FROM resale_flat_prices_2017
+GROUP BY town
+ORDER BY num_transactions DESC;
 ```
 
-**Exercise**
-
-“I want to find a home for my parents. They need something larger than 100sqm, but my budget is strictly under $600,000. How would we write that rule?”
-
-> **What’s Your Query?**
-
-##### Filters
-
-Filters are used to filter data based on a condition. The `WHERE` clause is used to filter data in a `SELECT` statement and commonly uses comparison and logical operators. 
-
-| Operator | Description |
-| --- | --- |
-| `=` | Equal |
-| `<>` | Not equal |
-| `>` | Greater |
-| `>=` | Greater or equal |
-| `<` | Less |
-| `<=` | Less or equal |
-| `AND` | Logical AND |
-| `OR` | Logical OR |
-| `NOT` | Logical NOT | 
-
-Example:
-
+2. Average resale price by flat type:
 ```sql
-SELECT
-  *
-FROM
-  resale_flat_prices_2017
-WHERE
-  town = 'BUKIT MERAH';
+SELECT flat_type, ROUND(AVG(resale_price), 0) AS avg_price
+FROM resale_flat_prices_2017
+GROUP BY flat_type
+ORDER BY avg_price DESC;
 ```
 
-You can introduce line breaks to make the query more readable. 
-
-> **Exercise – basic filters**  
-> - Select flats with floor area greater than 100 sqm.  
-> - Select flats with resale price between 400,000 and 500,000.  
-> - Select flats with lease commence date later than year 2000 and floor area greater than 100 sqm. 
-
-##### Advanced Filters (Optional)
-
-Sometimes basic `=` and `>` are not enough; here are a few powerful shortcuts you can use in your `WHERE` clause. 
-
-**`IN` – one of several values**
-
+3. WHERE vs. HAVING:
 ```sql
-SELECT
-  *
-FROM
-  resale_flat_prices_2017
-WHERE
-  town IN ('BUKIT MERAH', 'BUKIT TIMAH');
+-- Towns with more than 500 transactions for 4 ROOM flats only
+SELECT town, COUNT(*) AS transactions
+FROM resale_flat_prices_2017
+WHERE flat_type = '4 ROOM'           -- filter rows BEFORE grouping
+GROUP BY town
+HAVING COUNT(*) > 500                -- filter groups AFTER counting
+ORDER BY transactions DESC;
 ```
 
-**`BETWEEN` – numbers in a range**
+**Discussion Questions:**
+- "Why can't you write `HAVING flat_type = '4 ROOM'`?"
+- "What does `GROUP BY town, flat_type` give you vs. `GROUP BY town` alone?"
 
+### 💬 Q&A & Reflection (10 min)
+
+- **Common Misconception:** "`HAVING` is just `WHERE` for aggregates." → Conceptually yes, but mechanically different — `WHERE` runs before grouping, `HAVING` after. Mixing them up produces errors or wrong results.
+- **Business Case:** Singapore's HDB uses aggregate queries exactly like this to publish quarterly housing market reports — average resale prices by town, flat type, and storey range.
+
+---
+
+## 🏃 Part 3: Advanced Logic & Data Cleaning (55 min)
+
+### 🎯 Learning Objective
+Transform data using `CASE` statements for conditional categorisation and `CAST` for type conversion including date extraction.
+
+### 📖 Theory Recap (10 min)
+
+**Analogy:** `CASE` is SQL's `if/elif/else`. `CAST` is SQL's translator — it converts data from one type to another (e.g., text → number, text → date).
+
+**CASE syntax:**
 ```sql
-SELECT
-  *
-FROM
-  resale_flat_prices_2017
-WHERE
-  resale_price BETWEEN 400000 AND 500000;
+CASE
+    WHEN condition1 THEN result1
+    WHEN condition2 THEN result2
+    ELSE default_result
+END AS alias
 ```
 
-**`LIKE` – pattern matching**
-
+**CAST syntax:**
 ```sql
-SELECT
-  *
-FROM
-  resale_flat_prices_2017
-WHERE
-  town LIKE 'B%';
+CAST(column AS target_type)
+-- or DuckDB shorthand:
+column::DATE
+column::INTEGER
 ```
 
-**`DISTINCT` – remove duplicates**
+### 🛠️ Hands-On Activity: "The Property Classifier" (35 min)
 
+1. Categorise flats by price bracket:
 ```sql
-SELECT DISTINCT
-  town
-FROM
-  resale_flat_prices_2017;
-```
-
-> **Optional Exercise – advanced filters**  
-> - Return the unique flat types and flat models.  
-> - Find all towns starting with “P”. 
-
-##### Functions
-
-Functions are used to perform operations on data, returning new values. 
-
-| Function | Description |
-| --- | --- |
-| `ABS()` | Absolute value of a number |
-| `ROUND()` | Round to a number of decimal places |
-| `LOWER()` | String in lowercase |
-| `UPPER()` | String in uppercase |
-| `LENGTH()` | Length of a string |
-| `TRIM()` | Remove leading and trailing spaces |
-| `CONCAT()` | Concatenate strings | 
-
-Example:
-
-```sql
-SELECT
-  LOWER(town) AS town_lower,
-  CONCAT(block, ' ', street_name) AS address
-FROM
-  resale_flat_prices_2017;
-```
-
-***
-
-### Q&A
-
-Common Hurdle: “Do I need to capitalize `SELECT`?”  
-Short answer: SQL keywords are not case-sensitive, but we use uppercase for keywords to make queries easier to read.
-
-### Reflection
-
--  **Business Use Case:** How would a real estate app like PropertyGuru use these filters when a user moves a slider on their screen?
-
-***
-
-# Section 2: Finding the Big Picture (Aggregates & Grouping)
-
-### Learning Objectives
-
-Learners will be able to summarize data using aggregate functions and use the HAVING clause to filter those summaries.
-
-***
-
-### 2.1 Aggregate Functions
-
-Aggregate functions perform calculations over many rows and return a single value. 
-
-| Function | Description |
-| --- | --- |
-| `COUNT()` | Number of rows |
-| `SUM()` | Sum of values |
-| `AVG()` | Average value |
-| `MIN()` | Minimum value |
-| `MAX()` | Maximum value |
-| `FIRST()` | First value in a column |
-| `LAST()` | Last value in a column | 
-
-#### Workshop – Task 3: Basic Aggregates
-
-How many transactions happened?
-
-```sql
-SELECT
-  COUNT(*)
-FROM
-  resale_flat_prices_2017;
-```
-
-What is the most expensive flat ever sold in this dataset?
-
-```sql
-SELECT
-  MAX(resale_price)
-FROM
-  resale_flat_prices_2017;
-```
-
-Average resale price overall:
-
-```sql
-SELECT
-  AVG(resale_price) AS avg_price_overall
-FROM
-  resale_flat_prices_2017;
-```
-
-Average price per town:
-
-```sql
-SELECT
-  town,
-  AVG(resale_price) AS avg_price
-FROM
-  resale_flat_prices_2017
-GROUP BY
-  town;
-```
-
-> **Exercise – more aggregates**  
-> - Select the average resale price of flats in Bishan.  
-> - Select the total resale value (price) of flats in Tampines. 
-
-***
-
-### GROUP BY & HAVING
-
-> **Question** “Look at this query. If you want to find out the town where the average price is more than $600,000, can you use `WHERE` as a filter? Run this SQL and find out what's wrong.”
-
-Incorrect attempt:
-
-```sql
-SELECT
-  town,
-  AVG(resale_price) AS avg_price
-FROM
-  resale_flat_prices_2017
-WHERE
-  avg_price > 600000
-ORDER BY
-  avg_price DESC;
-```
-
-**Narrative:**
-
-“We know `WHERE` filters individual rows **before** they are grouped. Now, you only want to see towns where that average is over $600,000. You can't use `WHERE` because the average didn't exist until you grouped them. To see the towns where the average is over $600,000, you need to **GROUP** all flats by town first and then calculate their average prices. For such cases, we use `HAVING`. Think of `WHERE` as the *pre-filter* and `HAVING` as the *post-grouping filter*.”
-
-#### Deeper Dive: WHERE vs HAVING Side-by-Side 
-
-```sql
--- Filter on individual rows before grouping
-SELECT
-  town,
-  AVG(resale_price) AS avg_price
-FROM
-  resale_flat_prices_2017
-WHERE
-  resale_price > 500000
-GROUP BY
-  town;
-```
-
-```sql
--- Filter on the aggregated result after grouping
-SELECT
-  town,
-  AVG(resale_price) AS avg_price
-FROM
-  resale_flat_prices_2017
-GROUP BY
-  town
-HAVING
-  AVG(resale_price) > 500000;
-```
-
-> Notice how the first query throws away rows cheaper than 500,000 before averaging, while the second keeps all rows but hides towns whose **average** is below 500,000. 
-
-***
-
-### Group By
-
-The `GROUP BY` clause groups rows with the same values so you can calculate summaries per group. It comes after `WHERE` and before `ORDER BY`. 
-
-#### Task 4: Group By & Having
-
-Filter to show only towns with high average prices:
-
-```sql
-SELECT
-  town,
-  AVG(resale_price) AS avg_price
-FROM
-  resale_flat_prices_2017
-GROUP BY
-  town
-HAVING
-  avg_price > 600000
-ORDER BY
-  avg_price DESC;
-```
-
-##### Extra Patterns 
-
-Group by multiple columns:
-
-```sql
-SELECT
-  town,
-  lease_commence_date,
-  AVG(resale_price) AS avg_price
-FROM
-  resale_flat_prices_2017
-GROUP BY
-  town, lease_commence_date;
-```
-
-Use column positions in `GROUP BY`:
-
-```sql
-SELECT
-  town,
-  lease_commence_date,
-  AVG(resale_price) AS avg_price
-FROM
-  resale_flat_prices_2017
-GROUP BY
-  1, 2;
-```
-
-Combine with sorting:
-
-```sql
-SELECT
-  town,
-  lease_commence_date,
-  AVG(resale_price) AS avg_price
-FROM
-  resale_flat_prices_2017
-GROUP BY
-  town, lease_commence_date
-ORDER BY
-  town,
-  lease_commence_date DESC;
-```
-
-> **Exercise – grouped summaries**  
-> - Select the average resale price by flat type.  
-> - Select the average resale price by flat type and flat model.  
-> - Select the average resale price by town and lease commence date only for lease commence dates after year 2010 and sort by town (descending) and lease commence date (descending). 
-
-***
-
-### Q&A
-
-Common Hurdle: “What happens if I forget the `GROUP BY` but use an `AVG()`?”  
-Most databases will either error or aggregate the whole table instead of per town; always list the non-aggregated columns in both `SELECT` and `GROUP BY`.
-
-### Reflection
-
--  **Business Use Case:** If you are a government planner, how does `GROUP BY town` help you decide where to build the next MRT station or school?
-
-***
-
-# Section 3: Advanced Logic & Data Cleaning
-
-### Learning Objectives
-
-Learners will be able to categorize data using `CASE`, convert data types with `CAST`, and extract specific components from dates.
-
-### Theory Recap – The "Translator"
-
-"Data isn't always ready for analysis. A `month` might be a text string like `'2017-01'` instead of a date object. `CAST` (or the `::` shorthand) acts as our translator to fix types. Meanwhile, `CASE` allows us to create new labels—like tagging a flat as 'Large' or 'Small' based on its type—making our data much easier to read for a non-technical boss."
-
-***
-
-### Workshop
-
-#### Task 5: Categorizing with CASE
-
-**Price Categories**
-
-```sql
-SELECT
-  town,
-  resale_price,
-  CASE
-    WHEN resale_price > 1000000 THEN 'Million Dollar Club'
-    WHEN resale_price > 500000 THEN 'Mid-Range'
-    ELSE 'Entry-Level'
-  END AS price_category
-FROM
-  resale_flat_prices_2017;
-```
-
-Categorize flat sizes:
-
-```sql
-SELECT
-  town,
-  flat_type,
-  CASE
-    WHEN flat_type IN ('1 ROOM', '2 ROOM', '3 ROOM') THEN 'Small'
-    WHEN flat_type = '4 ROOM' THEN 'Medium'
-    ELSE 'Large'
-  END AS flat_size
-FROM
-  resale_flat_prices_2017;
-```
-
-> **Exercise – custom categories**  
-> - Design your own “budget/mid/high-end” categories based on resale_price.  
-> - Design a “old vs new” label based on lease_commence_date. 
-
-***
-
-#### Task 6: Dates and Casting
-
-**Warm-Up: Casting Numbers**
-
-```sql
-SELECT
-  town,
-  resale_price,
-  CAST(resale_price AS INTEGER) AS resale_price_int
-FROM
-  resale_flat_prices_2017;
-```
-
-or using shorthand:
-
-```sql
-SELECT
-  town,
-  resale_price,
-  resale_price::INTEGER AS resale_price_int
-FROM
-  resale_flat_prices_2017;
-```
-
-**Main Task – Convert text to a real date and extract the year**
-
-```sql
--- ANSI SQL style (maximum portability)
-SELECT
-    month,
-    CAST(month || '-01' AS DATE) AS transaction_date,
-    EXTRACT(YEAR FROM CAST(month || '-01' AS DATE)) AS sale_year
+SELECT town, flat_type, resale_price,
+    CASE
+        WHEN resale_price < 300000 THEN 'Budget'
+        WHEN resale_price BETWEEN 300000 AND 500000 THEN 'Mid-Range'
+        ELSE 'Premium'
+    END AS price_category
 FROM resale_flat_prices_2017;
 ```
 
+2. Convert text month to date and extract year:
 ```sql
--- DuckDB/PostgreSQL style
-SELECT
-    month,
-    (month || '-01')::DATE AS transaction_date,
-    date_part('year', (month || '-01')::DATE) AS sale_year
-FROM resale_flat_prices_2017;
+SELECT month,
+    CAST(month || '-01' AS DATE) AS first_of_month,
+    YEAR(CAST(month || '-01' AS DATE)) AS year,
+    MONTH(CAST(month || '-01' AS DATE)) AS month_num
+FROM resale_flat_prices_2017
+LIMIT 10;
 ```
 
-
-> **Question** “If the `month` column is text `'2017-01'`, can we add 1 month to it directly? Why do we need to `CAST` it to a `DATE` type first?”
-
-##### Optional: Advanced – Changing the Table Schema
-
-Sometimes you may want to permanently store the converted date and year in the table. 
-
-Convert the `month` text to a `date` and add as a new column:
-
+3. Combine with aggregation — count by category and quarter:
 ```sql
 SELECT
-  *,
-  CONCAT(month, '-01')::DATE AS transaction_date
-FROM
-  resale_flat_prices_2017;
+    CASE
+        WHEN MONTH(CAST(month || '-01' AS DATE)) <= 3 THEN 'Q1'
+        WHEN MONTH(CAST(month || '-01' AS DATE)) <= 6 THEN 'Q2'
+        WHEN MONTH(CAST(month || '-01' AS DATE)) <= 9 THEN 'Q3'
+        ELSE 'Q4'
+    END AS quarter,
+    COUNT(*) AS transactions,
+    ROUND(AVG(resale_price), 0) AS avg_price
+FROM resale_flat_prices_2017
+GROUP BY quarter
+ORDER BY quarter;
 ```
 
-Add a new column and fill it:
+**Discussion Questions:**
+- "What happens if you forget `ELSE` in a `CASE` statement?"
+- "Why does `CAST(month AS DATE)` fail for the raw `month` column?"
 
-```sql
-ALTER TABLE
-  resale_flat_prices_2017
-ADD COLUMN
-  transaction_date DATE;
+### 💬 Q&A & Reflection (10 min)
 
-UPDATE
-  resale_flat_prices_2017
-SET
-  transaction_date = CONCAT(month, '-01')::DATE;
-```
+- **Common Misconception:** "`CASE` can only be used in `SELECT`." → You can use `CASE` in `WHERE`, `ORDER BY`, and even inside aggregate functions: `SUM(CASE WHEN town = 'BISHAN' THEN 1 ELSE 0 END)`.
+- **Business Case:** Banks use `CASE` statements to classify loan applications into risk tiers based on income, credit score, and loan-to-value ratio — producing real-time lending decisions at scale.
 
-Extract the transaction year:
+---
 
-```sql
-SELECT
-  *,
-  date_part('year', transaction_date) AS transaction_year
-FROM
-  resale_flat_prices_2017;
-```
+## 🎯 Wrap-Up (5 min)
 
-***
+### Key Takeaways
+1. **SELECT → FROM → WHERE → GROUP BY → HAVING → ORDER BY** — this is the logical execution order. Understanding it prevents 80% of beginner SQL errors.
+2. **Aggregate functions collapse rows** — always pair them with `GROUP BY` for meaningful results.
+3. **`CASE` and `CAST` are your cleaning tools** — categorise messy text and convert mistyped columns directly in your query.
 
-### Q&A
-
-Common Hurdle: “What does the `::` mean?”  
-It is shorthand for `CAST(value AS datatype)`; for example, `resale_price::INTEGER` is the same as `CAST(resale_price AS INTEGER)`. 
-
-### Reflection
-
--  **Business Use Case:** Why is it important to standardize date formats when merging data from two different countries?
-
-***
+### Next Steps
+- **Post-Class:** Complete [The Property Analyst](./post-class.md) — 4 SQL questions + a capstone challenge finding undervalued towns (45–60 min).
+- **Next Lesson:** Lesson 1.5 goes advanced — JOINs, window functions, and CTEs for complex multi-table analytics.
