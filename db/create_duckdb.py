@@ -1,6 +1,6 @@
 import duckdb
 
-con = duckdb.connect("db/unit-1-4.db")
+con = duckdb.connect("db/unit-1-4-assignment.db")
 
 # download csv file with the name "Resale flat prices based on registration date from Jan-2017 onwards"
 # from the data.gov.sg website
